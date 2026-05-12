@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KIWTECH – Payment</title>
+  <script src="razorpay-checkout.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #fffbe6 0%, #fff9c4 100%);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 36px 28px;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+    .logo { font-size: 42px; margin-bottom: 8px; }
+    h1 { font-size: 20px; font-weight: 800; color: #111; margin-bottom: 4px; }
+    .sub { font-size: 12px; color: #888; margin-bottom: 24px; }
+    .plan-box {
+      background: linear-gradient(135deg, #fffbe6, #fff3b0);
+      border: 2px solid #C9A227;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .plan-name { font-size: 16px; font-weight: 800; color: #111; }
+    .plan-label { font-size: 10px; color: #888; font-weight: 700; letter-spacing: 0.5px; }
+    .plan-price { font-size: 28px; font-weight: 800; color: #C9A227; }
+    label { font-size: 12px; font-weight: 600; color: #555; display: block; text-align: left; margin-bottom: 4px; }
+    input {
+      width: 100%; padding: 11px 14px; border: 1.5px solid #e5e7eb;
+      border-radius: 10px; font-size: 14px; color: #111; outline: none;
+      transition: border 0.2s; margin-bottom: 14px;
+    }
+    input:focus { border-color: #FFD700; }
+    .pay-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #FFD700, #C9A227);
+      border: none; border-radius: 12px; font-size: 15px;
+      font-weight: 800; color: #111; cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-bottom: 10px;
+    }
+    .pay-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .pay-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .err {
+      display: none; background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: 8px; padding: 9px 12px; font-size: 12px;
+      color: #dc2626; margin-bottom: 12px; text-align: left;
+    }
+    .success-box {
+      display: none;
+      background: #f0fdf4; border: 2px solid #22c55e;
+      border-radius: 14px; padding: 20px; margin-top: 10px;
+    }
+    .success-box h2 { font-size: 18px; color: #111; margin-bottom: 6px; }
+    .key-display {
+      font-family: monospace; font-size: 14px; font-weight: 800;
+      color: #1d4ed8; word-break: break-all;
+      background: #f3f4f6; border: 2px dashed #C9A227;
+      border-radius: 10px; padding: 12px; margin: 10px 0;
+    }
+    .note { font-size: 11px; color: #555; line-height: 1.6; }
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.2); border-top-color: #111;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .back-link { font-size: 12px; color: #888; margin-top: 14px; display: block; cursor: pointer; }
+    .back-link:hover { color: #C9A227; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">💳</div>
+  <h1>KIWTECH Payment</h1>
+  <p class="sub">Secure payment powered by Razorpay</p>
+
+  <div id="plan-box" class="plan-box">
+    <div>
+      <div class="plan-label">SELECTED PLAN</div>
+      <div class="plan-name" id="plan-name-display">Monthly</div>
+    </div>
+    <div class="plan-price" id="plan-price-display">₹399</div>
+  </div>
+
+  <div id="form-section">
+    <div>
+      <label>Full Name</label>
+      <input type="text" id="buyer-name" placeholder="e.g. Rahul Sharma">
+    </div>
+    <div>
+      <label>Email Address <span style="color:#ef4444">*</span></label>
+      <input type="email" id="buyer-email" placeholder="yourname@gmail.com">
+    </div>
+    <div id="err-div" class="err"></div>
+    <button class="pay-btn" id="pay-btn">💳 Pay Now</button>
+    <span class="back-link" onclick="window.close()">✕ Cancel & Close</span>
+  </div>
+
+  <div id="success-box" class="success-box">
+    <div style="font-size:36px;margin-bottom:8px;">🎉</div>
+    <h2>You're All Set!</h2>
+    <p class="note" id="email-confirm" style="margin-bottom:10px;"></p>
+    <div class="key-display" id="key-display"></div>
+    <div class="note">
+      ✅ Extension is now active<br>
+      ✅ Key also sent to your email<br>
+      ✅ You can close this tab now
+    </div>
+    <button class="pay-btn" style="margin-top:14px;" onclick="window.close()">🚀 Close & Use KIWTECH</button>
+  </div>
+</div>
+
+<script>
+  // ─── Config ─────────────────────────────────────────────
+  const RAZORPAY_KEY = "rzp_live_SknROGq0kjmrZs";
+  const SERVER_URL   = "https://script.google.com/macros/s/AKfycbyeQ6kEUPZZucPYzw9hw8lN7I2DlU75S5iqqwEmxc5-EpdKT7NRGhCVwo8oc3b4NET0/exec";
+
+  const PLANS = {
+    monthly:    { name: "Monthly",   price: 399,  days: 30,  paise: 39900  },
+    quarterly:  { name: "3 Months",  price: 999,  days: 90,  paise: 99900  },
+    halfyearly: { name: "6 Months",  price: 1599, days: 180, paise: 159900 },
+    yearly:     { name: "1 Year",    price: 1999, days: 365, paise: 199900 },
+  };
+
+  // ─── Read URL params ─────────────────────────────────────
+  const params  = new URLSearchParams(location.search);
+  const planKey = params.get("plan") || "monthly";
+  const plan    = PLANS[planKey] || PLANS.monthly;
+
+  document.getElementById("plan-name-display").textContent = plan.name;
+  document.getElementById("plan-price-display").textContent = "₹" + plan.price;
+  document.getElementById("pay-btn").textContent = "💳 Pay ₹" + plan.price + " Now";
+
+  // ─── Pay button ─────────────────────────────────────────
+  document.getElementById("pay-btn").addEventListener("click", () => {
+    const name  = document.getElementById("buyer-name").value.trim();
+    const email = document.getElementById("buyer-email").value.trim();
+    const errDiv = document.getElementById("err-div");
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errDiv.textContent = "Please enter a valid email address.";
+      errDiv.style.display = "block";
+      document.getElementById("buyer-email").focus();
+      return;
+    }
+    errDiv.style.display = "none";
+    startRazorpay(name, email);
+  });
+
+  document.getElementById("buyer-email").addEventListener("keypress", e => {
+    if (e.key === "Enter") document.getElementById("pay-btn").click();
+  });
+
+  // ─── Open Razorpay ───────────────────────────────────────
+  function startRazorpay(buyerName, buyerEmail) {
+    const options = {
+      key:         RAZORPAY_KEY,
+      amount:      plan.paise,
+      currency:    "INR",
+      name:        "KIWTECH by Arshit Traders",
+      description: `Meesho Shipping Optimizer — ${plan.name} Plan`,
+      prefill:     { name: buyerName, email: buyerEmail, contact: "" },
+      notes:       { plan: planKey, days: String(plan.days) },
+      theme:       { color: "#FFD700" },
+      modal:       { ondismiss: () => showErr("Payment cancelled. Try again.") },
+      handler: async function(response) {
+        await handleSuccess(response, buyerName, buyerEmail);
+      },
+    };
+
+    try {
+      const rzp = new Razorpay(options);
+      rzp.on("payment.failed", res => showErr("Payment failed: " + res.error.description));
+      rzp.open();
+    } catch(e) {
+      showErr("Could not open payment. Try refreshing.");
+      console.error(e);
+    }
+  }
+
+  // ─── After payment ───────────────────────────────────────
+  async function handleSuccess(rzpRes, buyerName, buyerEmail) {
+    const btn = document.getElementById("pay-btn");
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> Generating your key…`;
+
+    try {
+      const payload = {
+        action:              "razorpay-payment",
+        razorpay_payment_id: rzpRes.razorpay_payment_id,
+        razorpay_order_id:   rzpRes.razorpay_order_id   || "",
+        razorpay_signature:  rzpRes.razorpay_signature  || "",
+        plan:     planKey,
+        planName: plan.name,
+        days:     plan.days,
+        amount:   plan.price,
+        name:     buyerName,
+        email:    buyerEmail,
+      };
+
+      const res  = await fetch(SERVER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        redirect: "follow",
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.licenseKey) {
+        // Tell extension via chrome storage (if available)
+        try {
+          if (typeof chrome !== "undefined" && chrome.storage) {
+            await chrome.storage.sync.set({
+              licenseKey: data.licenseKey,
+              licenseStatus: "active",
+              licenseInfo: {
+                key: data.licenseKey,
+                planType: plan.name,
+                expiresAt: data.expiresAt,
+                activatedAt: new Date().toISOString(),
+              },
+              lastVerified: Date.now(),
+            });
+          }
+        } catch(e) { /* extension storage may not be accessible from tab */ }
+
+        showSuccessScreen(data.licenseKey, buyerEmail);
+      } else {
+        throw new Error(data.error || "Key generation failed");
+      }
+    } catch(err) {
+      console.error(err);
+      showErr(`Payment done (ID: ${rzpRes.razorpay_payment_id}). Contact WhatsApp for key: wa.me/918929401527`);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "💳 Pay ₹" + plan.price + " Now";
+    }
+  }
+
+  function showSuccessScreen(key, email) {
+    document.getElementById("form-section").style.display = "none";
+    document.getElementById("plan-box").style.display     = "none";
+    const box = document.getElementById("success-box");
+    box.style.display = "block";
+    document.getElementById("key-display").textContent    = key;
+    document.getElementById("email-confirm").innerHTML    = `Key sent to <strong>${email}</strong>`;
+  }
+
+  function showErr(msg) {
+    const e = document.getElementById("err-div");
+    e.textContent    = msg;
+    e.style.display  = "block";
+  }
+</script>
+</body>
+</html>
